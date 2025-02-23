@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { summarizeCodebase } from "./summarize";
-import { downloadRepo } from "./downloadRepo";
+import getRepo from "./getRepo";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
@@ -11,8 +11,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing URL parameter" }, { status: 400 });
   }
 
-  const fileNodes: FileNode[] = await downloadRepo(url);
-  const summaries: Summaries = await summarizeCodebase(fileNodes);
+  const parsedRepo: ParsedRepo = await getRepo(url);
+  const summaries: Summaries = await summarizeCodebase(parsedRepo);
 
   return NextResponse.json({ summaries }, { status: 200 });
 }

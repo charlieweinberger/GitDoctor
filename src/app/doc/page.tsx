@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, ReadonlyURLSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import axios from "axios";
 
-import { AppSidebar } from "@/components/doc/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,64 +16,74 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 
+import { AppSidebar } from "@/components/doc/app-sidebar";
+import { fetchGET } from '@/lib/utils';
+
 export default function Page() {
 
   const [ pageMarkdown, setPageMarkdown ] = useState("");
-  const [ fileNodes, setFileNodes ] = useState<FileNode[]>();
+  const [ parsedRepo, setParsedRepo ] = useState<ParsedRepo>();
+  const [ overall, setOverall ] = useState("");
 
-  const searchParams = useSearchParams();
-  const path = searchParams.get('path') ?? "";
-  const splitPath = path.slice(1).split("/");
+  const searchParams: ReadonlyURLSearchParams = useSearchParams();
+  const path: string = searchParams.get('path') ?? "";
+  const splitPath: string[] = path.slice(1).split("/");
 
   useEffect(() => {
-    axios.get(`/api/create-documentation?url=https://github.com/${searchParams.get('repo')}`).then((res) => {
-      setFileNodes(res.data.summaries.individual.fileNodes);
-    });
+    const setSummaries = async() => {
+      const response: Summaries | null = await fetchGET(`/api/create-docs?url=${searchParams.get('url')}`);
+      if (!response) {
+        throw new Error("Error while fetching.");
+      }
+      setParsedRepo(response.parsedRepo);
+      setOverall(response.overall);
+    }
+    setSummaries();
   }, [searchParams]);
 
   useEffect(() => {
-    if (!fileNodes || !path) return;
+
     // Traverse the data object (no matter the depth) to find the markdown content according to the path
-    const current: string | null = findContentByPath(fileNodes, path);
-    if (current) {
-      setPageMarkdown(current);
+    
+    if (!parsedRepo || !path) {
+      setPageMarkdown(overall);
+      return;
     }
-  }, [fileNodes, path]);
 
-  const findContentByPath: (fileNodes: FileNode[], targetPath: string) => string | null = (fileNodes, targetPath) => {
-
-    console.log(`Searching fileNodes for path ${targetPath}...`);
-    const queue: FileNode[] = [...fileNodes];
+    console.log(`Searching parsedRepo for path ${path}...`);
+    const queue: ParsedRepo = [...parsedRepo];
     console.log(`Initial queue length: ${queue.length}`);
 
     while (queue.length > 0) {
       
-      const currentNode: FileNode | undefined = queue.shift();
-      if (!currentNode) continue;
+      const node: ParsedRepoNode | undefined = queue.shift();
+      if (!node) continue;
 
-      console.log(`Checking ${currentNode.path}...`);
+      console.log(`Checking ${node.path}...`);
       
-      if (typeof currentNode.content === "string" && currentNode.path === targetPath) {
+      if (typeof node.content === "string" && node.path === path) {
         console.log("Found our node! Now returning its content...");
-        return currentNode.content;
+        setPageMarkdown(node.content);
+        return;
       }
 
-      if (typeof currentNode.content === "string") {
+      if (typeof node.content === "string") {
         console.log("Current node is a string, skipping to next node...");
         continue;
       }
 
-      console.log(`Found directory ${currentNode.path} with ${currentNode.content.length} item(s). Adding item(s) to queue.`);
-      queue.push(...currentNode.content);
+      console.log(`Found directory ${node.path} with ${node.content.length} item(s). Adding item(s) to queue.`);
+      queue.push(...node.content);
       console.log(`Remaining files in queue: ${queue.length}`);
+
     }
 
-    console.log(`The target path ${targetPath} was not found.`);
-    return null;
+    console.log(`The target path ${path} was not found.`);
+    setPageMarkdown("");
 
-  }
+  }, [parsedRepo, overall, path]);
 
-  if (!fileNodes) {
+  if (!parsedRepo) {
     return (
       <div>
         Loading...
@@ -85,7 +93,7 @@ export default function Page() {
 
   return (
     <SidebarProvider>
-      <AppSidebar fileNodes={fileNodes} />
+      <AppSidebar parsedRepo={parsedRepo} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
           <div className="flex items-center gap-2 px-4">
@@ -97,12 +105,12 @@ export default function Page() {
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 {splitPath.map((title) => (
-                  <>
+                  <div className="flex flex-row items-center" key={title}>
+                  <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>
-                      <BreadcrumbSeparator className="hidden md:block" />
                       {title}
                     </BreadcrumbItem>
-                  </>
+                  </div>
                 ))}
               </BreadcrumbList>
             </Breadcrumb>
