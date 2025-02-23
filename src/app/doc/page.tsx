@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useSearchParams, ReadonlyURLSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
-import { AppSidebar } from "@/components/doc/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,10 +16,13 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 
+import { AppSidebar } from "@/components/doc/app-sidebar";
+import { fetchGET } from '@/lib/utils';
+
 export default function Page() {
 
   const [ pageMarkdown, setPageMarkdown ] = useState("");
-  const [ fileNodes, setFileNodes ] = useState<FileNode[]>();
+  const [ parsedRepo, setParsedRepo ] = useState<ParsedRepo>();
   const [ overall, setOverall ] = useState("");
 
   const searchParams: ReadonlyURLSearchParams = useSearchParams();
@@ -28,48 +30,50 @@ export default function Page() {
   const splitPath: string[] = path.slice(1).split("/");
 
   useEffect(() => {
-    axios.get(`/api/create-documentation?url=${searchParams.get('url')}`).then((res) => {
-      setFileNodes(res.data.summaries.individual.fileNodes);
-      setOverall(res.data.summaries.overall);
-    });
-    // const response = await fetch(`/api/create-documentation?url=${searchParams.get('url')}`, {
-    //   method: 'GET'
-    // });
+    const setSummaries = async() => {
+      const response: Summaries | null = await fetchGET(`/api/create-docs?url=${searchParams.get('url')}`);
+      if (!response) {
+        throw new Error("Error while fetching.");
+      }
+      setParsedRepo(response.parsedRepo);
+      setOverall(response.overall);
+    }
+    setSummaries();
   }, [searchParams]);
 
   useEffect(() => {
 
     // Traverse the data object (no matter the depth) to find the markdown content according to the path
     
-    if (!fileNodes || !path) {
+    if (!parsedRepo || !path) {
       setPageMarkdown(overall);
       return;
     }
 
-    console.log(`Searching fileNodes for path ${path}...`);
-    const queue: FileNode[] = [...fileNodes];
+    console.log(`Searching parsedRepo for path ${path}...`);
+    const queue: ParsedRepo = [...parsedRepo];
     console.log(`Initial queue length: ${queue.length}`);
 
     while (queue.length > 0) {
       
-      const currentNode: FileNode | undefined = queue.shift();
-      if (!currentNode) continue;
+      const node: ParsedRepoNode | undefined = queue.shift();
+      if (!node) continue;
 
-      console.log(`Checking ${currentNode.path}...`);
+      console.log(`Checking ${node.path}...`);
       
-      if (typeof currentNode.content === "string" && currentNode.path === path) {
+      if (typeof node.content === "string" && node.path === path) {
         console.log("Found our node! Now returning its content...");
-        setPageMarkdown(currentNode.content);
+        setPageMarkdown(node.content);
         return;
       }
 
-      if (typeof currentNode.content === "string") {
+      if (typeof node.content === "string") {
         console.log("Current node is a string, skipping to next node...");
         continue;
       }
 
-      console.log(`Found directory ${currentNode.path} with ${currentNode.content.length} item(s). Adding item(s) to queue.`);
-      queue.push(...currentNode.content);
+      console.log(`Found directory ${node.path} with ${node.content.length} item(s). Adding item(s) to queue.`);
+      queue.push(...node.content);
       console.log(`Remaining files in queue: ${queue.length}`);
 
     }
@@ -77,9 +81,9 @@ export default function Page() {
     console.log(`The target path ${path} was not found.`);
     setPageMarkdown("");
 
-  }, [fileNodes, overall, path]);
+  }, [parsedRepo, overall, path]);
 
-  if (!fileNodes) {
+  if (!parsedRepo) {
     return (
       <div>
         Loading...
@@ -89,7 +93,7 @@ export default function Page() {
 
   return (
     <SidebarProvider>
-      <AppSidebar fileNodes={fileNodes} />
+      <AppSidebar parsedRepo={parsedRepo} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
           <div className="flex items-center gap-2 px-4">

@@ -18,8 +18,8 @@ import {
 
 import { ChevronRight, File, Folder } from "lucide-react";
 
-function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
-  fileNode: FileNode
+function CollapsibleItem({ node, activeFile, setActiveFile }: {
+  node: ParsedRepoNode
   activeFile: string
   setActiveFile: (filePath: string) => void
 }) {
@@ -28,24 +28,24 @@ function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
   const searchParams: ReadonlyURLSearchParams = useSearchParams();
   const router = useRouter();
 
-  const title: string = fileNode.path.split('/').pop() ?? "";
+  const title: string = node.path.split('/').pop() ?? "";
 
   const handleClick = () => {
-    setActiveFile(fileNode.path);
+    setActiveFile(node.path);
     const repo: string = searchParams.get("repo") ?? "";
-    router.push(`${pathname}?repo=${repo}&path=${fileNode.path}`);
+    router.push(`${pathname}?repo=${repo}&path=${node.path}`);
   }
 
-  if (typeof fileNode.content === "string") {
+  if (typeof node.content === "string") {
     return (
       <Collapsible
-        key={fileNode.path}
+        key={node.path}
         asChild
-        defaultOpen={fileNode.path === activeFile}
+        defaultOpen={node.path === activeFile}
         className="group/collapsible"
       >
         <SidebarMenuItem>
-          <SidebarMenuButton onClick={() => handleClick()} tooltip={fileNode.path} className="flex flex-row gap-2">
+          <SidebarMenuButton onClick={() => handleClick()} tooltip={node.path} className="flex flex-row gap-2">
             <File className="size-4" />
             <p>{title}</p>
           </SidebarMenuButton>
@@ -56,14 +56,14 @@ function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
 
   return (
     <Collapsible
-      key={fileNode.path}
+      key={node.path}
       asChild
-      defaultOpen={fileNode.path === activeFile}
+      defaultOpen={node.path === activeFile}
       className="group/collapsible"
     >
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={fileNode.path} className="flex flex-row gap-2">
+          <SidebarMenuButton tooltip={node.path} className="flex flex-row gap-2">
             <Folder/>
             <p>{title}</p>
             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -71,8 +71,8 @@ function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
-            {fileNode.content.map((childFileNode: FileNode) => (
-              <CollapsibleItem key={childFileNode.path} fileNode={childFileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
+            {node.content.map((node: ParsedRepoNode) => (
+              <CollapsibleItem key={node.path} node={node} activeFile={activeFile} setActiveFile={setActiveFile} />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -81,9 +81,9 @@ function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
   );
 }
 
-export function NavMain({ fileNodes }: { fileNodes: FileNode[] }) {
+export function NavMain({ parsedRepo }: { parsedRepo: ParsedRepo }) {
   
-  const [ activeFile, setActiveFile ] = useState(fileNodes[0].path);
+  const [ activeFile, setActiveFile ] = useState(parsedRepo[0].path);
 
   const searchParams: ReadonlyURLSearchParams = useSearchParams();
   const repo: string | null = searchParams.get("repo");
@@ -95,8 +95,8 @@ export function NavMain({ fileNodes }: { fileNodes: FileNode[] }) {
         <h1 className="text-lg font-medium">{repo}</h1>
       </div>
       <SidebarMenu>
-        {fileNodes.map((fileNode: FileNode) => (
-          <CollapsibleItem key={fileNode.path} fileNode={fileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
+        {parsedRepo.map((node: ParsedRepoNode) => (
+          <CollapsibleItem key={node.path} node={node} activeFile={activeFile} setActiveFile={setActiveFile} />
         ))}
       </SidebarMenu>
     </SidebarGroup>

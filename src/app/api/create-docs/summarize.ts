@@ -23,13 +23,13 @@ async function summarizeFile(rawCode: string): Promise<string> {
   return chatCompletion.choices[0].message.content;
 }
 
-async function summarizeAllFiles(fileNodes: FileNode[]): Promise<FileNode[]> {
+async function summarizeAllFiles(parsedRepo: ParsedRepo): Promise<ParsedRepo> {
   console.log("Starting to summarize all files...");
-  let queue: FileNode[] = [...fileNodes];
+  let queue: ParsedRepo = [...parsedRepo];
   console.log(`Initial queue length: ${queue.length}`);
 
   while (queue.length > 0) {
-    const current: FileNode | undefined = queue.shift();
+    const current: ParsedRepoNode | undefined = queue.shift();
     if (!current) continue;
 
     console.log(`Processing ${current.path}...`);
@@ -44,10 +44,10 @@ async function summarizeAllFiles(fileNodes: FileNode[]): Promise<FileNode[]> {
   }
 
   console.log("Completed summarizing all files!");
-  return fileNodes;
+  return parsedRepo;
 }
 
-async function summarizeOverall(githubRepo: FileNode[]): Promise<string> {
+async function summarizeOverall(githubRepo: ParsedRepo): Promise<string> {
   console.log("Starting overall summary...");
   const chatCompletion: OpenAICompletion = await client.chat.completions.create({
     messages: [
@@ -66,24 +66,24 @@ async function summarizeOverall(githubRepo: FileNode[]): Promise<string> {
   return chatCompletion.choices[0].message.content;
 }
 
-export async function summarizeCodebase(githubRepo: FileNode[]): Promise<Summaries> {
+export async function summarizeCodebase(parsedRepo: ParsedRepo): Promise<Summaries> {
   console.log("Starting codebase summarization...");
   
   // Format download as JavaScript object
-  const githubRepoCopy: FileNode[] = JSON.parse(JSON.stringify(githubRepo));
+  const repoCopy: ParsedRepo = JSON.parse(JSON.stringify(parsedRepo));
 
   // Summarize each file
   console.log("Beginning individual file summaries...");
-  const fileSummaries: FileNode[] = await summarizeAllFiles(githubRepo);
+  const individualSummaries: ParsedRepo = await summarizeAllFiles(parsedRepo);
 
   // Summarize the overall document
   console.log("Beginning overall summary...");
-  const overallSummary: string = await summarizeOverall(githubRepoCopy);
+  const overallSummary: string = await summarizeOverall(repoCopy);
 
   // Return both summaries
   const summaries: Summaries = {
     overall: overallSummary,
-    individual: fileSummaries
+    parsedRepo: individualSummaries
   };
   console.log("Summarization complete!");
   return summaries;

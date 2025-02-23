@@ -10,9 +10,9 @@ export default function Home() {
   const [inputValue, setInputValue] = useState("");
 
   return (
-    <div className="bg-blue-100 py-44 h-screen flex items-center flex-col gap-12">
+    <div className="bg-green-100 py-44 h-screen flex items-center flex-col gap-12">
       <div className="text-8xl text-center font-bold flex flex-row">
-        <p className="text-blue-800">Git</p>
+        <p className="text-green-600">Git</p>
         <p>Doctor</p>
       </div>
       <div className="flex flex-row gap-2">
@@ -27,7 +27,7 @@ export default function Home() {
         />
         <Button
           type="submit"
-          className="bg-blue-800 hover:bg-blue-900"
+          className="bg-green-600 hover:bg-green-700"
         >
             <Link href={`/doc?url=${inputValue}`}>
               Submit

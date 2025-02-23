@@ -7,11 +7,11 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-export function AppSidebar({ fileNodes }: { fileNodes: FileNode[] }) {
+export function AppSidebar({ parsedRepo }: { parsedRepo: ParsedRepo }) {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <NavMain fileNodes={fileNodes} />
+        <NavMain parsedRepo={parsedRepo} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
