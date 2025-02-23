@@ -1,16 +1,13 @@
 "use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import React, { useState } from 'react';
-import { useRouter } from "next/navigation"
+import { useState } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
-  const router = useRouter();
 
   return (
     <div className="bg-blue-100 py-44 h-screen flex items-center flex-col gap-12">
@@ -18,10 +15,7 @@ export default function Home() {
         <p className="text-blue-800">Git</p>
         <p>Doctor</p>
       </div>
-      <form
-        onSubmit={() => router.push(`/doc?url=${inputValue.slice(19)}`)}
-        className="flex flex-row gap-2"
-      >
+      <div className="flex flex-row gap-2">
         <Input
           id="github-repo"
           type="text"
@@ -31,8 +25,15 @@ export default function Home() {
           className="w-96 bg-white text-xl"
           required
         />
-        <Button className="bg-blue-800 hover:bg-blue-900" type="submit">Submit</Button>
-      </form>
+        <Button
+          type="submit"
+          className="bg-blue-800 hover:bg-blue-900"
+        >
+            <Link href={`/doc?url=${inputValue.slice(19)}`}>
+              Submit
+            </Link>
+        </Button>
+      </div>
       <div className="text-xl flex flex-col gap-4">
         <div className="flex justify-center font-bold">
           Instructions

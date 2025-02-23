@@ -1,23 +1,19 @@
-"use client"
+"use client";
 
-import * as React from "react"
-
-import { NavMain } from "@/components/doc/nav-main"
+import { NavMain } from "@/components/doc/nav-main";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-
-export function AppSidebar(props: { data: any }) {
+export function AppSidebar({ fileNodes }: { fileNodes: FileNode[] }) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon">
       <SidebarContent>
-        <NavMain content={props.data} />
+        <NavMain fileNodes={fileNodes} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

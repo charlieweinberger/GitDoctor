@@ -1,23 +1,12 @@
 "use server";
 
-import axios from 'axios'
+import axios from "axios";
 
-// Add type definition
-interface FileNode {
-  path: string
-  type: "blob" | "tree"
-  content: FileNode[] | string
-}
-
-interface GithubRepo {
-  fileNodes: FileNode[]
-}
-
-function convertToFileNodes(files: any, basePath: string = ''): FileNode[] {
-  const fileNodes: FileNode[] = []
+function convertToFileNodes(files, basePath: string = ""): FileNode[] {
+  const fileNodes: FileNode[] = [];
 
   for (const [name, content] of Object.entries(files)) {
-    const path = basePath ? `${basePath}/${name}` : name
+    const path = basePath ? `${basePath}/${name}` : name;
 
     if (typeof content === 'object' && content !== null) {
       // This is a directory
@@ -25,39 +14,39 @@ function convertToFileNodes(files: any, basePath: string = ''): FileNode[] {
         path,
         type: 'tree',
         content: convertToFileNodes(content, path)
-      })
+      });
     } else {
       // This is a file
       fileNodes.push({
         path,
         type: 'blob',
         content: content || ''
-      })
+      });
     }
   }
 
-  return fileNodes
+  return fileNodes;
 }
 
-export async function downloadRepo(url: string): Promise<GithubRepo> {
-  console.log('Starting repository download for URL:', url)
-  let repoOwner: string | undefined = undefined
-  let repoName: string | undefined = undefined
-  let repoBranch: string | undefined = undefined
+export async function downloadRepo(url: string): Promise<FileNode[]> {
+  console.log(`Starting repository download for URL: ${url}`);
 
-  if (!url.includes('github.com')) {
-    throw new Error('Invalid GitHub URL')
+  let repoOwner: string | undefined;
+  let repoName: string | undefined;
+
+  if (!url.includes("github.com")) {
+    throw new Error("Invalid GitHub URL");
   }
 
   if (url) {
-    const urlParts = url.split('github.com/')[1]?.split('/') || []
-    repoOwner = urlParts[0]
-    repoName = urlParts[1]
-    console.log('Parsed repository details:', { repoOwner, repoName })
+    const urlParts = url.split("github.com/")[1]?.split('/') || [];
+    repoOwner = urlParts[0];
+    repoName = urlParts[1];
+    console.log(`Parsed repository details: ${{ repoOwner, repoName }}...`);
   }
 
   if (!repoOwner || !repoName) {
-    throw new Error('Invalid repository URL format')
+    throw new Error("Invalid repository URL format");
   }
 
   const repoResponse = await axios.get(
@@ -66,33 +55,43 @@ export async function downloadRepo(url: string): Promise<GithubRepo> {
       headers: {
         Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
       }
-    })
-  repoBranch = repoResponse?.data?.default_branch
-  console.log('Retrieved default branch:', repoBranch)
+    }
+  );
+  const repoBranch = repoResponse?.data?.default_branch;
+  console.log(`Retrieved default branch: ${repoBranch}...`);
 
-  const tempFiles: Record<string, any> = {}
+  const tempFiles: Record<string, any> = {};
 
   try {
-    const { data } = await axios.get(
+    const { data }: { data: FileNode[] } = await axios.get(
       `https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${repoBranch}?recursive=1`,
       {
         headers: {
           Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
         }
       }
-    )
-    console.log('Retrieved repository tree with', data?.tree?.length || 0, 'items')
+    );
 
-    for (const item of data?.tree || []) {
+    if (!data) {
+      throw new Error("Error fetching github repository.");
+    }
+
+    console.log(`Retrieved repository tree with ${data.length} items`);
+
+    for (const item of data) {
+      
       // Only process files (blobs), skip directories
-      if (item.type !== 'blob') continue;
-      console.log('Processing file:', item.path)
+      if (typeof item.content !== "string") {
+        continue;
+      }
+      
+      console.log(`Processing file: ${item.path}...`);
 
-      const dirIndex = item.path.split('/')
-      let currentLevel = tempFiles
+      const dirIndex: string[] = item.path.split('/');
+      let currentLevel: any = tempFiles;
 
       for (let i = 0; i < dirIndex.length; i++) {
-        const part = dirIndex[i]
+        const part = dirIndex[i];
 
         if (i === dirIndex.length - 1) {
           try {
@@ -103,29 +102,26 @@ export async function downloadRepo(url: string): Promise<GithubRepo> {
                   Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
                 }
               }
-            )
-            currentLevel[part] = response.data
+            );
+            currentLevel[part] = response.data;
           } catch (error) {
-            console.error(`Failed to fetch file ${item.path}:`, error)
-            currentLevel[part] = ''
+            console.error(`Failed to fetch file ${item.path}: ${error}`);
+            currentLevel[part] = "";
           }
         } else {
           if (!currentLevel[part]) {
-            currentLevel[part] = {}
+            currentLevel[part] = {};
           }
-          currentLevel = currentLevel[part]
+          currentLevel = currentLevel[part];
         }
       }
     }
-  } catch (err) {
-    console.error("Unable to fetch repository structure:", err)
-    throw err
+  } catch (error) {
+    console.error(`Unable to fetch repository structure: ${error}...`);
+    throw error;
   }
 
-  const result: GithubRepo = {
-    fileNodes: convertToFileNodes(tempFiles)
-  }
-  console.log('Finished processing repository. Total file nodes:', result.fileNodes.length)
-
-  return result
+  const result: FileNode[] = convertToFileNodes(tempFiles);
+  console.log('Finished processing repository. Total file nodes:', result.length);
+  return result;
 }

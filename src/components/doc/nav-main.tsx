@@ -1,43 +1,94 @@
-"use client"
+"use client";
 
-import { ChevronRight, type LucideIcon } from "lucide-react"
-import { usePathname, useSearchParams, useRouter } from 'next/navigation'
-import {
-  File,
-  Folder
-} from "lucide-react"
+import { useState } from "react";
+import { usePathname, useSearchParams, useRouter, ReadonlyURLSearchParams } from "next/navigation";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
+import { ChevronRight, File, Folder } from "lucide-react";
 
-export function NavMain({
-  content
-}: {
-  content: {
-    path: string
-    isActive?: boolean
-    type: "tree" | "blob"
-    content?: {
-      path: string
-      url: string
-      content: string
-    }[]
-  }[]
+function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
+  fileNode: FileNode
+  activeFile: string
+  setActiveFile: (filePath: string) => void
 }) {
 
-  const searchParams = useSearchParams();
-  const repo = searchParams.get('repo')
+  const pathname: string = usePathname();
+  const searchParams: ReadonlyURLSearchParams = useSearchParams();
+  const router = useRouter();
+
+  const title: string = fileNode.path.split('/').pop() ?? "";
+
+  const handleClick = () => {
+    setActiveFile(fileNode.path);
+    const repo: string = searchParams.get("repo") ?? "";
+    router.push(`${pathname}?repo=${repo}&path=${fileNode.path}`);
+  }
+
+  if (typeof fileNode.content === "string") {
+    return (
+      <Collapsible
+        key={fileNode.path}
+        asChild
+        defaultOpen={fileNode.path === activeFile}
+        className="group/collapsible"
+      >
+        <SidebarMenuItem>
+          <SidebarMenuButton onClick={() => handleClick()} tooltip={fileNode.path} className="flex flex-row gap-2">
+            <File className="size-4" />
+            <p>{title}</p>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </Collapsible>
+    )
+  }
+
+  return (
+    <Collapsible
+      key={fileNode.path}
+      asChild
+      defaultOpen={fileNode.path === activeFile}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={fileNode.path} className="flex flex-row gap-2">
+            <Folder/>
+            <p>{title}</p>
+            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {
+              fileNode.content.map((childFileNode: FileNode) => (
+                <CollapsibleItem key={childFileNode.path} fileNode={childFileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
+              ))
+            }
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
+export function NavMain({ fileNodes }: { fileNodes: FileNode[] }) {
+  
+  const [ activeFile, setActiveFile ] = useState(fileNodes[0].path);
+
+  const searchParams: ReadonlyURLSearchParams = useSearchParams();
+  const repo: string | null = searchParams.get("repo");
 
   return (
     <SidebarGroup>
@@ -46,77 +97,12 @@ export function NavMain({
         <h1 className="text-lg font-medium">{repo}</h1>
       </div>
       <SidebarMenu>
-        {content.map((item) => (
-          <CollapsibleItem key={item.path} item={item} />
-        ))}
+        {
+          fileNodes.map((fileNode: FileNode) => (
+            <CollapsibleItem key={fileNode.path} fileNode={fileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
+          ))
+        }
       </SidebarMenu>
     </SidebarGroup>
-  )
-}
-
-
-function CollapsibleItem({ item }: any) {
-  const pathname = usePathname()
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const title = item.path.split('/').pop()
-
-
-  function handleClick() {
-    let repo = searchParams.get('repo')
-    router.push(`${pathname}?repo=${repo}&path=${item.path}`)
-  }
-
-
-  if (item.type === "blob") {
-    return (
-      <Collapsible
-        key={item.path}
-        asChild
-        defaultOpen={item.isActive}
-        className="group/collapsible"
-      >
-        <SidebarMenuItem>
-          <SidebarMenuButton onClick={() => handleClick()} tooltip={item.path}>
-            <File className="mr-2 size-4" />
-            <span className="ms-2">{title}</span>
-          </SidebarMenuButton>
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {item.items?.map((subItem: any) => (
-                <CollapsibleItem key={subItem.path} item={subItem} />
-              ))}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </SidebarMenuItem>
-      </Collapsible>
-    )
-  }
-
-  return (
-    <Collapsible
-      key={item.path}
-      asChild
-      defaultOpen={item.isActive}
-      className="group/collapsible"
-    >
-      <SidebarMenuItem>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={item.path}>
-            <Folder className="mr-2" />
-            <span>{title}</span>
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
-            {item.content?.map((subItem: any) => (
-              <CollapsibleItem key={subItem.path} item={subItem} />
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </SidebarMenuItem>
-    </Collapsible>
-  )
+  );
 }

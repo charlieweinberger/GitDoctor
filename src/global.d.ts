@@ -1,16 +1,12 @@
 interface FileNode {
   path: string
-  type: "blob" | "tree"
+  type: "tree" | "blob"
   content: FileNode[] | string
-}
-
-interface GithubRepo {
-  fileNodes: FileNode[]
 }
 
 interface Summaries {
   overall: string,
-  individual: GithubRepo
+  individual: FileNode[]
 }
 
 type OpenAICompletion = OpenAI.Chat.Completions.ChatCompletion;

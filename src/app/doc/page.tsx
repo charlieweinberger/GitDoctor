@@ -1,75 +1,91 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import ReactMarkdown from 'react-markdown'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import axios from "axios";
 
-import { AppSidebar } from "@/components/doc/app-sidebar"
+import { AppSidebar } from "@/components/doc/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from "@/components/ui/breadcrumb";
 import {
   SidebarInset,
   SidebarProvider,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export default function Page() {
-  const searchParams = useSearchParams()
-  const path = searchParams.get('path') ?? ""
-  const splitPath = path.slice(1).split("/")
 
-  const [pageMarkdown, setPageMarkdown] = useState("")
+  const [ pageMarkdown, setPageMarkdown ] = useState("");
+  const [ fileNodes, setFileNodes ] = useState<FileNode[]>();
 
-  const [data, setData] = useState([])
-
-  useEffect(() => {
-    let githubUrl = "https://github.com/" + searchParams.get('repo')
-
-    axios.get(`/api/create-documentation?url=${githubUrl}`).then((res) => {
-      console.log(res.data.summaries.individual.fileNodes)
-      setData(res.data.summaries.individual.fileNodes)
-    })
-  }, [])
+  const searchParams = useSearchParams();
+  const path = searchParams.get('path') ?? "";
+  const splitPath = path.slice(1).split("/");
 
   useEffect(() => {
-    if (!data || !path) return
+    axios.get(`/api/create-documentation?url=https://github.com/${searchParams.get('repo')}`).then((res) => {
+      setFileNodes(res.data.summaries.individual.fileNodes);
+    });
+  }, [searchParams]);
 
+  useEffect(() => {
+    if (!fileNodes || !path) return;
     // Traverse the data object (no matter the depth) to find the markdown content according to the path
-    const current = findContentByPath(data, path)
-    setPageMarkdown(current)
+    const current: string | null = findContentByPath(fileNodes, path);
+    if (current) {
+      setPageMarkdown(current);
+    }
+  }, [fileNodes, path]);
 
+  const findContentByPath: (fileNodes: FileNode[], targetPath: string) => string | null = (fileNodes, targetPath) => {
 
-  }, [path])
+    console.log(`Searching fileNodes for path ${targetPath}...`);
+    const queue: FileNode[] = [...fileNodes];
+    console.log(`Initial queue length: ${queue.length}`);
 
-  function findContentByPath(data: any, targetPath: any) {
-    function traverse(nodes: any) {
-      for (const node of nodes) {
-        if (node.path === targetPath) {
-          return node.content;
-        }
-        if (node.type === "tree" && node.content) {
-          const result = traverse(node.content);
-          if (result !== null) {
-            return result;
-          }
-        }
+    while (queue.length > 0) {
+      
+      const currentNode: FileNode | undefined = queue.shift();
+      if (!currentNode) continue;
+
+      console.log(`Checking ${currentNode.path}...`);
+      
+      if (typeof currentNode.content === "string" && currentNode.path === targetPath) {
+        console.log("Found our node! Now returning its content...");
+        return currentNode.content;
       }
-      return null;
+
+      if (typeof currentNode.content === "string") {
+        console.log("Current node is a string, skipping to next node...");
+        continue;
+      }
+
+      console.log(`Found directory ${currentNode.path} with ${currentNode.content.length} item(s). Adding item(s) to queue.`);
+      queue.push(...currentNode.content);
+      console.log(`Remaining files in queue: ${queue.length}`);
     }
 
-    return traverse(data);
+    console.log(`The target path ${targetPath} was not found.`);
+    return null;
+
   }
 
-  if (!data) return <div>Loading...</div>
+  if (!fileNodes) {
+    return (
+      <div>
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
-      <AppSidebar data={data} />
+      <AppSidebar fileNodes={fileNodes} />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
           <div className="flex items-center gap-2 px-4">
