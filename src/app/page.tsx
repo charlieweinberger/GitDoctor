@@ -22,14 +22,14 @@ export default function Home() {
           placeholder="https://github.com/user/repo/"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          className="w-96 bg-white text-xl"
+          className="w-96 bg-white"
           required
         />
         <Button
           type="submit"
           className="bg-blue-800 hover:bg-blue-900"
         >
-            <Link href={`/doc?url=${inputValue.slice(19)}`}>
+            <Link href={`/doc?url=${inputValue}`}>
               Submit
             </Link>
         </Button>

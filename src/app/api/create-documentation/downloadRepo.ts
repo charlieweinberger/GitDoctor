@@ -1,26 +1,24 @@
 "use server";
 
-import axios from "axios";
-
 function convertToFileNodes(files, basePath: string = ""): FileNode[] {
   const fileNodes: FileNode[] = [];
 
   for (const [name, content] of Object.entries(files)) {
     const path = basePath ? `${basePath}/${name}` : name;
 
-    if (typeof content === 'object' && content !== null) {
+    if (typeof content === "object" && content !== null) {
       // This is a directory
       fileNodes.push({
         path,
-        type: 'tree',
+        type: "tree",
         content: convertToFileNodes(content, path)
       });
     } else {
       // This is a file
       fileNodes.push({
         path,
-        type: 'blob',
-        content: content || ''
+        type: "blob",
+        content: (typeof content === "string") ? content : ""
       });
     }
   }

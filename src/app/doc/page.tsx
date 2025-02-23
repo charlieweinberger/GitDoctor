@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, ReadonlyURLSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import axios from "axios";
 
 import { AppSidebar } from "@/components/doc/app-sidebar";
 import {
@@ -22,29 +21,32 @@ export default function Page() {
 
   const [ pageMarkdown, setPageMarkdown ] = useState("");
   const [ fileNodes, setFileNodes ] = useState<FileNode[]>();
+  const [ overall, setOverall ] = useState("");
 
-  const searchParams = useSearchParams();
-  const path = searchParams.get('path') ?? "";
-  const splitPath = path.slice(1).split("/");
+  const searchParams: ReadonlyURLSearchParams = useSearchParams();
+  const path: string = searchParams.get('path') ?? "";
+  const splitPath: string[] = path.slice(1).split("/");
 
   useEffect(() => {
-    axios.get(`/api/create-documentation?url=https://github.com/${searchParams.get('repo')}`).then((res) => {
+    axios.get(`/api/create-documentation?url=${searchParams.get('url')}`).then((res) => {
       setFileNodes(res.data.summaries.individual.fileNodes);
+      setOverall(res.data.summaries.overall);
     });
+    // const response = await fetch(`/api/create-documentation?url=${searchParams.get('url')}`, {
+    //   method: 'GET'
+    // });
   }, [searchParams]);
 
   useEffect(() => {
-    if (!fileNodes || !path) return;
+
     // Traverse the data object (no matter the depth) to find the markdown content according to the path
-    const current: string | null = findContentByPath(fileNodes, path);
-    if (current) {
-      setPageMarkdown(current);
+    
+    if (!fileNodes || !path) {
+      setPageMarkdown(overall);
+      return;
     }
-  }, [fileNodes, path]);
 
-  const findContentByPath: (fileNodes: FileNode[], targetPath: string) => string | null = (fileNodes, targetPath) => {
-
-    console.log(`Searching fileNodes for path ${targetPath}...`);
+    console.log(`Searching fileNodes for path ${path}...`);
     const queue: FileNode[] = [...fileNodes];
     console.log(`Initial queue length: ${queue.length}`);
 
@@ -55,9 +57,10 @@ export default function Page() {
 
       console.log(`Checking ${currentNode.path}...`);
       
-      if (typeof currentNode.content === "string" && currentNode.path === targetPath) {
+      if (typeof currentNode.content === "string" && currentNode.path === path) {
         console.log("Found our node! Now returning its content...");
-        return currentNode.content;
+        setPageMarkdown(currentNode.content);
+        return;
       }
 
       if (typeof currentNode.content === "string") {
@@ -68,12 +71,13 @@ export default function Page() {
       console.log(`Found directory ${currentNode.path} with ${currentNode.content.length} item(s). Adding item(s) to queue.`);
       queue.push(...currentNode.content);
       console.log(`Remaining files in queue: ${queue.length}`);
+
     }
 
-    console.log(`The target path ${targetPath} was not found.`);
-    return null;
+    console.log(`The target path ${path} was not found.`);
+    setPageMarkdown("");
 
-  }
+  }, [fileNodes, overall, path]);
 
   if (!fileNodes) {
     return (
@@ -97,12 +101,12 @@ export default function Page() {
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 {splitPath.map((title) => (
-                  <>
+                  <div className="flex flex-row items-center" key={title}>
+                  <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>
-                      <BreadcrumbSeparator className="hidden md:block" />
                       {title}
                     </BreadcrumbItem>
-                  </>
+                  </div>
                 ))}
               </BreadcrumbList>
             </Breadcrumb>

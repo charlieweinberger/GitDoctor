@@ -71,11 +71,9 @@ function CollapsibleItem({ fileNode, activeFile, setActiveFile }: {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
-            {
-              fileNode.content.map((childFileNode: FileNode) => (
-                <CollapsibleItem key={childFileNode.path} fileNode={childFileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
-              ))
-            }
+            {fileNode.content.map((childFileNode: FileNode) => (
+              <CollapsibleItem key={childFileNode.path} fileNode={childFileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
+            ))}
           </SidebarMenuSub>
         </CollapsibleContent>
       </SidebarMenuItem>
@@ -97,11 +95,9 @@ export function NavMain({ fileNodes }: { fileNodes: FileNode[] }) {
         <h1 className="text-lg font-medium">{repo}</h1>
       </div>
       <SidebarMenu>
-        {
-          fileNodes.map((fileNode: FileNode) => (
-            <CollapsibleItem key={fileNode.path} fileNode={fileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
-          ))
-        }
+        {fileNodes.map((fileNode: FileNode) => (
+          <CollapsibleItem key={fileNode.path} fileNode={fileNode} activeFile={activeFile} setActiveFile={setActiveFile} />
+        ))}
       </SidebarMenu>
     </SidebarGroup>
   );

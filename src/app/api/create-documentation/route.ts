@@ -11,6 +11,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing URL parameter" }, { status: 400 });
   }
 
+  console.log(`--------------------- ${url}`);
+
   const fileNodes: FileNode[] = await downloadRepo(url);
   const summaries: Summaries = await summarizeCodebase(fileNodes);
 
