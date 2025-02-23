@@ -23,46 +23,8 @@ export async function GET(request: Request) {
     }
 
     const githubRepo: GithubRepo = await downloadRepo(url);
-    // console.log(githubRepo);
-    // let githubRepo: GithubRepo = {
-    //     fileNodes: [
-    //         {
-    //             path: "/doc",
-    //             type: "tree" as const,
-    //             content: [
-    //                 {
-    //                     path: "/doc/test",
-    //                     type: "tree" as const,
-    //                     content: [
-    //                         {
-    //                             path: "/doc/test/test1.1",
-    //                             type: "blob" as const,
-    //                             content: "## Hello world \n This is a markdown filea asdfasdfasdf",
-    //                         },
-    //                     ]
-    //                 },
-    //                 {
-    //                     path: "/doc/test1",
-    //                     type: "blob" as const,
-    //                     content: "## Hello world \n This is a markdown file",
-    //                 },
-    //                 {
-    //                     path: "/doc/test2",
-    //                     type: "blob" as const,
-    //                     content: "## Hello world \n This is a markdown file",
-    //                 },
-    //                 {
-    //                     path: "/doc/test3",
-    //                     type: "blob" as const,
-    //                     content: "## Hello world \n This is a markdown file",
-    //                 },
-    //             ],
-    //         },
-    //     ]
-    // }
+    console.log(githubRepo);
     const summaries: Summaries = await summarizeCodebase(githubRepo);
-
-    console.log(summaries)
 
 
     return NextResponse.json({ summaries }, { status: 200 });
