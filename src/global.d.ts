@@ -1,7 +1,3 @@
-// OpenAI
-
-type OpenAICompletion = OpenAI.Chat.Completions.ChatCompletion;
-
 // Raw Repo
 
 interface RawRepoNode {
@@ -26,6 +22,8 @@ interface RawRepoInfo {
   repoDefaultBranch: string
   rawRepo: RawRepo
 }
+
+type RawRepoRecord = Record<string, string>;
 
 // Parsed Repo
 

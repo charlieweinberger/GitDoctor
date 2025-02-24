@@ -45,81 +45,77 @@ async function fetchRepoData(url: string): Promise<RawRepoInfo> {
 
 }
 
-// TODO: fix this function
-async function parseRepoData({
+async function restructureRawRepo({
   repoOwner,
   repoName,
   repoDefaultBranch,
   rawRepo
-}: RawRepoInfo): Promise<ParsedRepo> {
-
-  const tempFiles: Record<string, any> = {};
-
-  for (const rawNode of rawRepo.tree) {
+}: RawRepoInfo): Promise<RawRepoRecord> {
+  
+  let rawRepoRecord: RawRepoRecord = {};
+  
+  for (const rawRepoNode of rawRepo.tree) {
     
-    // Only process files (blobs), skip directories
-    if (rawNode.type === "tree") {
+    if (rawRepoNode.type === "tree") {
       continue;
     }
+
+    console.log(`Processing file: ${rawRepoNode.path}...`);
+    const breadcrumb: string[] = rawRepoNode.path.split('/');
+    let tempRecord = JSON.parse(JSON.stringify(rawRepoRecord));
     
-    console.log(`Processing file: ${rawNode.path}...`);
-
-    const dirIndex: string[] = rawNode.path.split('/');
-    let currentLevel: any = tempFiles;
-
-    for (let i = 0; i < dirIndex.length; i++) {
-      const part = dirIndex[i];
-      if (i < dirIndex.length - 1) {
-        if (!currentLevel[part]) {
-          currentLevel[part] = {};
-        }
-        currentLevel = currentLevel[part];
-      } else {
-        try {
-          currentLevel[part] = await fetchGET(`https://raw.githubusercontent.com/${repoOwner}/${repoName}/${repoDefaultBranch}/${rawNode.path}`);
-        } catch (error) {
-          console.error(`Failed to fetch file ${rawNode.path}: ${error}`);
-          currentLevel[part] = "";
-        }
+    for (const folder of breadcrumb) {
+      if (folder === breadcrumb[-1]) {
+        const fileContent: string = await fetchGET(
+          `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${repoDefaultBranch}/${rawRepoNode.path}`);
+        tempRecord[folder] = fileContent ?? "";
+        continue;
       }
+      if (!tempRecord[folder]) {
+        tempRecord[folder] = {};
+      }
+      tempRecord = tempRecord[folder];
     }
+    rawRepoRecord = tempRecord;
   }
 
-  const result: ParsedRepo = convertToParsedRepo(tempFiles);
-  console.log(`Finished processing repository. Total file nodes: ${result.length}`);
-  return result;
+  return rawRepoRecord;
 
 }
 
-// TODO: fix this function
-function convertToParsedRepo(files, basePath: string = ""): ParsedRepo {
-  const fileNodes: ParsedRepo = [];
-
-  for (const [name, content] of Object.entries(files)) {
+function convertToParsedRepo(rawRepoRecord: RawRepoRecord, basePath: string = ""): ParsedRepo {
+  
+  const parsedRepo: ParsedRepo = [];
+  
+  for (const [name, content] of Object.entries(rawRepoRecord)) {
+    
     const path = basePath ? `${basePath}/${name}` : name;
-
+    
     if (typeof content === "object" && content !== null) {
       // This is a directory
-      fileNodes.push({
-        path,
+      parsedRepo.push({
+        path: path,
         type: "tree",
         content: convertToParsedRepo(content, path)
       });
     } else {
       // This is a file
-      fileNodes.push({
-        path,
+      parsedRepo.push({
+        path: path,
         type: "blob",
         content: (typeof content === "string") ? content : ""
       });
     }
+
   }
 
-  return fileNodes;
+  console.log(`Finished processing repository. Total file nodes: ${parsedRepo.length}`);
+  return parsedRepo;
+
 }
 
 export default async function getRepo(url: string): Promise<ParsedRepo> {
-  // TODO: convert RawRepo to ParsedRepo
-  const rawRepo: RawRepo = await fetchRepoData(url);
-  return await parseRepoData(rawRepo);
+  const rawRepoInfo: RawRepoInfo = await fetchRepoData(url);
+  const restructuredRawRepo: RawRepoRecord = await restructureRawRepo(rawRepoInfo);
+  return convertToParsedRepo(restructuredRawRepo);
 }
