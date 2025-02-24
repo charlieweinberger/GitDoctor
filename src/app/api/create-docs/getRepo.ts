@@ -116,6 +116,10 @@ function convertToParsedRepo(rawRepoRecord: RawRepoRecord, basePath: string = ""
 
 export default async function getRepo(url: string): Promise<ParsedRepo> {
   const rawRepoInfo: RawRepoInfo = await fetchRepoData(url);
+  console.log("\n\n\nrawRepoInfo: ");
+  console.log(rawRepoInfo);
   const restructuredRawRepo: RawRepoRecord = await restructureRawRepo(rawRepoInfo);
+  console.log("\n\n\nrestructuredRawRepo: ");
+  console.log(restructuredRawRepo);
   return convertToParsedRepo(restructuredRawRepo);
 }
