@@ -5,14 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export async function fetchGET(url: string) {
+export async function fetchGET(url: string, headers: { Authorization: string } | null = null) {
   try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      }
-    });
+    const response = !headers
+      ? await fetch(url)
+      : await fetch(url, {
+        method: "GET",
+        headers: headers
+      });
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }

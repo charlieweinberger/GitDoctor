@@ -1,10 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
-### Create FastAPI instance with custom docs and openapi url
-app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
+from api.types import *
+from get_repo import get_repo
+from summarize import summarize
 
-# TODO convert /src/app/api/create-docs (nextjs) into /api (fastapi, here)
+app = FastAPI()
 
 @app.get("/api/py/create-docs")
-def create_docs():
-    return {"message": "Hello from FastAPI"}
+async def create_docs(url: str = "") -> Summaries:
+    if url == "":
+        raise HTTPException(status_code=400, detail="Missing URL parameter")
+    parsed_repo: ParsedRepo = await get_repo(url)
+    summaries: Summaries = await summarize(parsed_repo)
+    return summaries

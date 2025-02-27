@@ -2,6 +2,8 @@
 
 import { fetchGET } from '@/lib/utils';
 
+const HEADERS = { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` };
+
 async function fetchRepoData(url: string): Promise<RawRepoInfo> {
 
   console.log(`Attempting to get repository data for URL: ${url}...`);
@@ -18,14 +20,14 @@ async function fetchRepoData(url: string): Promise<RawRepoInfo> {
     throw new Error("Invalid repository URL format");
   }
 
-  const repoInfo = await fetchGET(`https://api.github.com/repos/${repoOwner}/${repoName}`);
+  const repoInfo = await fetchGET(`https://api.github.com/repos/${repoOwner}/${repoName}`, HEADERS);
   const repoDefaultBranch: string = repoInfo?.default_branch ?? null;
 
   if (!repoDefaultBranch) {
     throw new Error("Invalid repository branch");
   }
 
-  const rawRepo: RawRepo | null = await fetchGET(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${repoDefaultBranch}?recursive=1`);
+  const rawRepo: RawRepo | null = await fetchGET(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${repoDefaultBranch}?recursive=1`, HEADERS);
 
   if (!rawRepo) {
     throw new Error("Error fetching repository.");
@@ -67,7 +69,8 @@ async function restructureRawRepo({
     for (const folder of breadcrumb) {
       if (folder === breadcrumb[-1]) {
         const fileContent: string = await fetchGET(
-          `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${repoDefaultBranch}/${rawRepoNode.path}`);
+          `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${repoDefaultBranch}/${rawRepoNode.path}`,
+          HEADERS);
         tempRecord[folder] = fileContent ?? "";
         continue;
       }

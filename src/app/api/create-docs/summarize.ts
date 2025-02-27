@@ -41,7 +41,7 @@ async function summarizeOverall(parsedRepo: ParsedRepo): Promise<string> {
   return completion.response.text();
 }
 
-export async function summarizeCodebase(parsedRepo: ParsedRepo): Promise<Summaries> {
+export default async function summarizeCodebase(parsedRepo: ParsedRepo): Promise<Summaries> {
 
   console.log("Starting codebase summarization...");
   const repoCopy: ParsedRepo = JSON.parse(JSON.stringify(parsedRepo));
