@@ -1,4 +1,4 @@
-from typing import List, Dict, Coroutine, Any
+from typing import List, Dict, Coroutine, Any, Union
 
 # Raw Repo
 
@@ -31,10 +31,13 @@ class RawRepoRecord:
 
 # Parsed Repo
 
+type ParsedRepoNodeType = "str" | "blob"
+type ParsedRepoNodeContent = Union["ParsedRepo", str]
+
 class ParsedRepoNode:
-  def __init__(self, path: str = "", name: str = "", content: ParsedRepo | str = ""):
+  def __init__(self, path: str = "", type: ParsedRepoNodeType = "", content: ParsedRepoNodeContent = ""):
     self.path = path
-    self.type = type # "str" | "blob"
+    self.type = type 
     self.content = content
 
 class ParsedRepo:

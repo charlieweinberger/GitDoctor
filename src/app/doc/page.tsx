@@ -31,7 +31,7 @@ export default function Page() {
 
   useEffect(() => {
     const setSummaries = async() => {
-      const response: Summaries | null = await fetchGET(`api/py/create-docs?url=${searchParams.get('url')}`);
+      const response: Summaries | null = await fetchGET(`api/py/gitingest?url=${searchParams.get('url')}`);
       if (!response) {
         throw new Error("Error while fetching.");
       }
